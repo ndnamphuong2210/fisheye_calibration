@@ -1,0 +1,118 @@
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+
+data = np.load("result/calibration_opencv.npz", allow_pickle=True)
+
+rms = float(data["rms"])
+K = data["K"]
+D = data["D"]
+
+objpoints = [np.array(p, dtype=np.float32) for p in data["objpoints"]]
+imgpoints = [np.array(p, dtype=np.float32) for p in data["imgpoints"]]
+rvecs = [np.array(p, dtype=np.float64) for p in data["rvecs"]]
+tvecs = [np.array(p, dtype=np.float64) for p in data["tvecs"]]
+
+dx, dy, err, radius = [], [], [], []
+x_abs_list, y_abs_list = [], []
+cx = K[0, 2]
+cy = K[1, 2]
+K = np.array(K, dtype=np.float64)
+D = np.array(D, dtype=np.float64).reshape(4, 1)
+
+for i in range(len(imgpoints)):
+    obj_pts = np.array(objpoints[i], dtype=np.float64).reshape(-1, 1, 3)
+    rvec = np.array(rvecs[i], dtype=np.float64).reshape(3, 1)
+    tvec = np.array(tvecs[i], dtype=np.float64).reshape(3, 1)
+
+    reprojected_pts, _ = cv2.fisheye.projectPoints(obj_pts, rvec, tvec, K, D)
+    reproj = reprojected_pts.reshape(-1, 2)
+
+    circles = np.array(imgpoints[i], dtype=np.float64).reshape(-1, 2)
+
+    x_abs = circles[:, 0]
+    y_abs = circles[:, 1]
+
+    deltax = circles[:, 0] - reproj[:, 0]
+    deltay = circles[:, 1] - reproj[:, 1]
+    error = np.sqrt(deltax**2 + deltay**2)
+
+    rad = np.sqrt((x_abs - cx) ** 2 + (y_abs - cy) ** 2)
+
+    dx.append(deltax)
+    dy.append(deltay)
+    err.append(error)
+    radius.append(rad)
+    x_abs_list.append(x_abs)
+    y_abs_list.append(y_abs)
+
+all_dx = np.concatenate(dx)
+all_dy = np.concatenate(dy)
+all_err = np.concatenate(err)
+all_radius = np.concatenate(radius)
+all_x_abs = np.concatenate(x_abs_list)
+all_y_abs = np.concatenate(y_abs_list)
+
+plt.figure(figsize=(70, 30))
+
+# 1. dx vs x
+plt.subplot(221)
+plt.scatter(all_x_abs, all_dx, alpha=0.4, c="blue", edgecolors="none", s=12)
+plt.xlim(0, 2840)
+plt.ylim(-6, 6)
+plt.title("dx vs x", fontsize=8)
+plt.xlabel("x (pixels)", fontsize=8)
+plt.ylabel("dx (pixels)", fontsize=8)
+plt.grid(True, linestyle=":", alpha=0.6)
+
+plt.subplot(222)
+plt.scatter(all_y_abs, all_dy, alpha=0.4, c="blue", edgecolors="none", s=12)
+plt.xlim(0, 2840)
+plt.ylim(-4, 4)
+plt.title("dy vs y", fontsize=8)
+plt.xlabel("y", fontsize=8)
+plt.ylabel("dy", fontsize=8)
+plt.grid(True, linestyle=":", alpha=0.6)
+
+plt.subplot(223)
+plt.scatter(all_radius, all_err, alpha=0.4, c="blue", edgecolors="none", s=12)
+plt.xlim(0, 1100)
+plt.ylim(0, 4)
+plt.title("residual vs radius", fontsize=8)
+plt.xlabel("radius", fontsize=8)
+plt.ylabel("residual error", fontsize=8)
+plt.grid(True, linestyle=":", alpha=0.6)
+
+bin_size = 5
+r_max = 1100
+bin_edges = np.arange(0, r_max + bin_size, bin_size)
+bin_centers = bin_edges[:-1] + bin_size / 2
+bin_rms = np.full(len(bin_centers), np.nan)
+
+bin_idx = np.digitize(all_radius, bin_edges) - 1
+for b in range(len(bin_centers)):
+    mask = bin_idx == b
+    if mask.sum() > 0:
+        bin_rms[b] = np.sqrt(np.mean(all_err[mask] ** 2))
+
+plt.subplot(224)
+valid = ~np.isnan(bin_rms)
+plt.plot(
+    bin_centers[valid],
+    bin_rms[valid],
+    marker="o",
+    markersize=3,
+    linewidth=1.5,
+    color="red",
+)
+plt.xlim(0, r_max)
+plt.ylim(0, 2)
+plt.title("RMS error vs radius", fontsize=8)
+plt.xlabel("radius", fontsize=8)
+plt.ylabel("RMS error", fontsize=8)
+plt.grid(True, linestyle=":", alpha=0.6)
+
+#plt.tight_layout()
+plt.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.08, wspace=0.25, hspace=0.35)
+plt.savefig("result/residualall_opencv.png", dpi=300)
+plt.show()

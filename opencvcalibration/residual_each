@@ -1,0 +1,96 @@
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+data = np.load("result/calibration_opencv.npz", allow_pickle=True)
+
+rms = float(data["rms"])
+K = data["K"]
+D = data["D"]
+cx = K[0, 2]
+cy = K[1, 2]
+
+objpoints = [np.array(p, dtype=np.float32) for p in data["objpoints"]]
+imgpoints = [np.array(p, dtype=np.float32) for p in data["imgpoints"]]
+rvecs = [np.array(p, dtype=np.float64) for p in data["rvecs"]]
+tvecs = [np.array(p, dtype=np.float64) for p in data["tvecs"]]
+
+dx, dy, err, radius = [], [], [], []
+x_abs_list, y_abs_list = [], []
+
+for i in range(len(imgpoints)):
+    reprojection, _ = cv2.fisheye.projectPoints(objpoints[i].astype(np.float32),rvecs[i].astype(np.float32),tvecs[i].astype(np.float32),K, D)
+
+    circles = imgpoints[i].reshape(-1, 2).astype(np.float32)
+    reproj = reprojection.reshape(-1, 2)
+    x_abs = circles[:, 0]
+    y_abs = circles[:, 1]
+
+    deltax = circles[:, 0] - reproj[:, 0]
+    deltay = circles[:, 1] - reproj[:, 1]
+    error = np.sqrt(deltax**2 + deltay**2)
+
+    rad = np.sqrt((x_abs - cx)**2 + (y_abs - cy)**2)
+
+    dx.append(deltax)
+    dy.append(deltay)
+    err.append(error)
+    radius.append(rad)
+    x_abs_list.append(x_abs)
+    y_abs_list.append(y_abs)
+
+    plt.figure(figsize=(10, 10))
+
+    plt.subplot(221)
+    plt.scatter(rad, error, alpha=0.4, c='blue', edgecolors='none', s=12)
+    plt.xlim(0, 1000)
+    plt.ylim(0, 4)
+    plt.title(f"residual vs radius image {i+1}", fontsize=12)
+    plt.xlabel("radius", fontsize=10)
+    plt.ylabel("residual (px)", fontsize=10)
+    plt.grid(True, linestyle=':', alpha=0.6)
+
+    plt.subplot(222)
+    ax2 = plt.gca()
+
+    q_plot = ax2.quiver(
+        x_abs, y_abs, deltax, deltay, error,
+        cmap='jet', angles='xy', scale_units='xy', scale=0.01, width=0.003, clim=(0, 5)
+    )
+
+    divider = make_axes_locatable(ax2)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(q_plot, cax=cax)
+    ax2.invert_yaxis()
+
+    margin = 50
+    ax2.set_xlim(x_abs.min() - margin, x_abs.max() + margin)
+    ax2.set_ylim(y_abs.max() + margin, y_abs.min() - margin)
+    ax2.set_aspect('equal', adjustable='box')
+    ax2.set_title(f"residual vector image {i+1}", fontsize=12)
+    ax2.set_xlabel("x", fontsize=10)
+    ax2.set_ylabel("y", fontsize=10)
+    ax2.grid(True, linestyle=':', alpha=0.6)
+
+    plt.subplot(223)
+    plt.scatter(x_abs, deltax, alpha=0.4, c='blue', edgecolors='none', s=12)
+    plt.xlim(0, 2840)
+    plt.ylim(-4, 4)
+    plt.title(f"dx vs x image {i+1}", fontsize=12)
+    plt.xlabel("x", fontsize=10)
+    plt.ylabel("dx", fontsize=10)
+    plt.grid(True, linestyle=':', alpha=0.6)
+
+    plt.subplot(224)
+    plt.scatter(y_abs, deltay, alpha=0.4, c='blue', edgecolors='none', s=12)
+    plt.xlim(0, 2840)
+    plt.ylim(-4, 4)
+    plt.title(f"dy vs y image {i+1}", fontsize=12)
+    plt.xlabel("y", fontsize=10)
+    plt.ylabel("dy", fontsize=10)
+    plt.grid(True, linestyle=':', alpha=0.6)
+
+    plt.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.08, wspace=0.25, hspace=0.35)
+    plt.savefig(f"result/residualeach_opencv/residual_image_{i+1}.png", dpi=300)
+    plt.show()
