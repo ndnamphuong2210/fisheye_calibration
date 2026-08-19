@@ -9,7 +9,7 @@ The calibration pipeline for 23-parameter model:
 - Optimize all the parameters
 
 Usage:
-- Circle detection and ordering (similar to run_detection_colab.ipynb)
+- Circle detection and ordering (similar to run_detection_colab.ipynb, which results in the alldataa.npz including circle centers and grid position)
 - Run the calibration (run_calibration.py in p23calibration)
 
 References:
