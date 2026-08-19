@@ -1,6 +1,18 @@
-import pickle
+import cv2
 import numpy as np
-import cv2 #opencv-python==4.10.0.84
+import matplotlib.pyplot as plt
+import p23_model as p23
+import fitsio
+
+img = fitsio.read("image/image_20260817_10_00_58_00.fits")
+img_norm = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
+img_gray = np.uint8(img_norm)
+
+fnom = 680.0  
+theta_max = np.deg2rad(215.0 / 2.0)
+
+initt = p23.initialize(img_gray, fnom, theta_max)
+print(initt)
 
 spacing = 4.0
 rows = 21
@@ -40,16 +52,16 @@ for grid_matrix, centers in zip(grids_list, centers_list):
         imgpoints.append(np.array(current_img_pts, dtype=np.float32).reshape(-1, 1, 2))
         objpoints.append(np.array(current_obj_pts, dtype=np.float32).reshape(-1, 1, 3))
 
-h, w = (2840,2840)
-K_init = np.matrix([[680.0, 0.0, 1410.0],[0.0, 680.0, 1460.0],[0.0, 0.0, 1.0]],dtype=np.float64)
-D_init = np.matrix(np.zeros((4, 1), dtype=np.float64))
-flags = (cv2. fisheye.CALIB_FIX_SKEW + cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC + cv2.fisheye.CALIB_USE_INTRINSIC_GUESS)
-rms, K, D, rvecs, tvecs = cv2.fisheye.calibrate(objpoints, imgpoints, (w, h), K_init, D_init, flags=flags, criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 500, 1e-10))
+K_init = np.array([[initt["fx0"], 0.0, initt["u0"]], [0.0, initt["fy0"], initt["v0"]], [0.0, 0.0, 1.0]],dtype=np.float64,)
+
+H_list = [p23.homo(imgpoints[i], objpoints[i], initt) for i in range(len(imgpoints))]
+rms, K, D, dt, rvecs, tvecs = p23.fisheye23(objpoints=objpoints,imgpoints=imgpoints,K=K_init,D=None,dt=None,Ho=H_list,)
 
 print("error: ", rms)
 print("K: ", K)
 print("D: ", D)
+print("dt: ", dt)
 print("tvecs: ", tvecs)
 print("rvecs: ", rvecs)
 
-np.savez_compressed("result/calibration_opencv.npz",rms=rms,K=K,D=D,objpoints=np.array(objpoints, dtype=object),imgpoints=np.array(imgpoints, dtype=object),rvecs=np.array(rvecs, dtype=object),tvecs=np.array(tvecs, dtype=object))
+np.savez_compressed("result/calibration_23p.npz",rms=rms,K=K,D=D, dt=dt,objpoints=np.array(objpoints, dtype=object),imgpoints=np.array(imgpoints, dtype=object),rvecs=np.array(rvecs, dtype=object),tvecs=np.array(tvecs, dtype=object))

@@ -1,0 +1,22 @@
+import numpy as np
+import cv2
+from scipy.optimize import least_squares
+import fitsio
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import p23_model as p23
+
+data = np.load("result/calibration_23p.npz", allow_pickle=True)
+
+imgpoints = data["imgpoints"]
+objpoints = data["objpoints"]
+rvecs = data["rvecs"]
+tvecs = data["tvecs"]
+K = data["K"]
+D = data["D"]
+dt = data["dt"]
+
+size = (2840, 2840)
+
+p23.plotallresidual(imgpoints, objpoints, rvecs, tvecs, K, D, dt, size=size)
+p23.ploteach(imgpoints, objpoints, rvecs, tvecs, K, D, dt, size=size)
