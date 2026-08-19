@@ -1,4 +1,3 @@
-import pickle
 import numpy as np
 import cv2 #opencv-python==4.10.0.84
 
