@@ -1,4 +1,4 @@
-Fisheye lens calibration is made based on Kannala & Brandt's generic camera model. Although OpenCV fisheye lens calibration is also implemented based on the same model, the algorithm breaks down for wide lenses, such as lenses with FOV greater than 180°, meanwhile the generic model still applies for such lens.
+Fisheye lens calibration is made based on Kannala & Brandt's generic camera model. Although OpenCV fisheye lens calibration is also implemented based on the same model, the algorithm breaks down for wide lenses, such as lenses with FOV greater than 180°, meanwhile the generic model still applies for such lenses.
 There is also the comparison between the OpenCV fisheye calibration model to 23-parameter model. 
 The calibration pipeline for 23-parameter model:
 - Detect and refine the circles from raw images and put them into order, which create a grid. Samples are shown in target_detection folder.
