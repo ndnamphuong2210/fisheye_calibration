@@ -4,7 +4,7 @@ The calibration pipeline for 23-parameter model:
 - Detect and refine the circles from raw images and put them into order. Samples are shown in target_detection folder.
 - Initialize the internal parameters using threshold and contour extraction
 - Initialize camera pose using back-projection and homography estimation, which still valid for the angle greater than 90° (the p23_model_old.py )
-  + The p23_model_old.py uses cv2.solvePnP to estimate the pose. However, it is not generally used for lens that is greater then 180°. In the code, it works because the points detected from the images is in the 180 degree area.
+  + The p23_model_old.py uses cv2.solvePnP to estimate the pose. However, it is not generally used for lens that is greater then 180°. In the code, it works because the points detected from the images are within the 180 degree region.
   + The p23_model.py is implemented similar to the paper of Kannala & Brandt's generic camera model and effectively works with high FOV.
 - Optimize all the parameters
 
