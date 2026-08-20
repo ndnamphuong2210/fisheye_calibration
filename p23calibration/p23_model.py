@@ -242,7 +242,7 @@ def undistort(imgpath, K, D, dt, theta, halfsize):
     size = (2*halfsize, 2*halfsize)
     thetarad = np.radians(theta)
     newf = halfsize/np.tan(thetarad)
-    newK = np.array([[newf, 0, halfsize], [0, newK, halfsize],[0, 0, 1]],dtype=np.float64)
+    newK = np.array([[newf, 0, halfsize], [0, newf, halfsize],[0, 0, 1]],dtype=np.float64)
     w, h = size
     fx, fy = newK[0,0], newK[1,1]
     cx, cy = newK[0,2], newK[1,2]

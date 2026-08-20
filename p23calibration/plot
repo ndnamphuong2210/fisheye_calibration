@@ -18,5 +18,10 @@ dt = data["dt"]
 
 size = (2840, 2840)
 
-p23.plotallresidual(imgpoints, objpoints, rvecs, tvecs, K, D, dt, size=size)
-p23.ploteach(imgpoints, objpoints, rvecs, tvecs, K, D, dt, size=size)
+#p23.plotallresidual(imgpoints, objpoints, rvecs, tvecs, K, D, dt, size=size)
+#p23.ploteach(imgpoints, objpoints, rvecs, tvecs, K, D, dt, size=size)
+undistorted = p23.undistort('image/image_20260817_10_02_01_00.fits', K, D, dt, 70, 1420)
+plt.imshow(undistorted, cmap='gray')
+
+plt.show()
+
